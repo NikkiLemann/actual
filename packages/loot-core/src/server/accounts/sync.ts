@@ -317,6 +317,57 @@ async function createNewPayees(payeesToCreate, addsAndUpdates) {
   });
 }
 
+function customValidation(transactions) {
+
+  const cutoffDate = new Date('2099-01-01');
+
+  // Filter out transactions with invalid future dates
+  const validTransactions = transactions.filter(transaction => {
+    const transactionDate = new Date(transaction.date);
+    return transactionDate <= cutoffDate;
+  });
+
+  const cleanedTransactions = [];
+  let i = 0;
+  console.log("CustomValidation");
+
+  while (i < validTransactions.length) {
+    const primaryTrans = validTransactions[i];
+
+    console.log(primaryTrans);
+
+    let done = false;
+    let j = 1;
+
+    while (done === false){
+      const checkingTrans = validTransactions[i+j];
+
+      if (
+        checkingTrans &&
+        primaryTrans.date === checkingTrans.date &&
+        primaryTrans.transactionAmount.amount === checkingTrans.transactionAmount.amount &&
+        primaryTrans.remittanceInformationUnstructured === checkingTrans.remittanceInformationUnstructured &&
+        (primaryTrans.transactionId[0] !== checkingTrans.transactionId[0] || primaryTrans.transactionId == checkingTrans.transactionId)
+      ) {
+          console.log("Duplicate found, won't add it to valid transactions");
+          done = true;
+      }
+      else{
+        j += 1;
+        if(i+j > validTransactions.length || primaryTrans.date != checkingTrans.date){
+          done = true;
+          cleanedTransactions.push(primaryTrans); 
+        }
+      }
+      
+    }
+    i += 1;
+  }
+
+  return cleanedTransactions;
+}
+
+
 export async function reconcileTransactions(
   acctId,
   transactions,
@@ -331,6 +382,10 @@ export async function reconcileTransactions(
   const updatedPreview = [];
   const existingPayeeMap = new Map<string, string>();
 
+  // Clean up duplicates from the valid transactions
+  const validTransactions = customValidation(transactions);  // Using the new cleanup function
+
+  // Continue with reconciliation using validTransactions
   const {
     payeesToCreate,
     transactionsStep1,
@@ -338,7 +393,7 @@ export async function reconcileTransactions(
     transactionsStep3,
   } = await matchTransactions(
     acctId,
-    transactions,
+    validTransactions,  // Use cleaned transactions
     isBankSyncAccount,
     strictIdChecking,
   );
