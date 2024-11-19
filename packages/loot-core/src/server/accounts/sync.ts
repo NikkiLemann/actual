@@ -157,7 +157,7 @@ async function downloadGoCardlessTransactions(
 
   if (includeBalance) {
     const {
-      transactions: { all },
+      transactions: { booked },
       balances,
       startingBalance,
     } = res;
@@ -165,7 +165,7 @@ async function downloadGoCardlessTransactions(
     console.log('Response:', res);
 
     return {
-      transactions: all,
+      transactions: booked,
       accountBalance: balances,
       startingBalance,
     };
@@ -173,7 +173,7 @@ async function downloadGoCardlessTransactions(
     console.log('Response:', res);
 
     return {
-      transactions: res.transactions.all,
+      transactions: res.transactions.booked,
     };
   }
 }
@@ -215,7 +215,7 @@ async function downloadSimpleFinTransactions(
       const error = res?.errors?.[accountId]?.[0];
 
       retVal[accountId] = {
-        transactions: data?.transactions?.all,
+        transactions: data?.transactions?.booked,
         accountBalance: data?.balances,
         startingBalance: data?.startingBalance,
       };
@@ -228,7 +228,7 @@ async function downloadSimpleFinTransactions(
   } else {
     const singleRes = res as BankSyncResponse;
     retVal = {
-      transactions: singleRes.transactions.all,
+      transactions: singleRes.transactions.booked,
       accountBalance: singleRes.balances,
       startingBalance: singleRes.startingBalance,
     };
