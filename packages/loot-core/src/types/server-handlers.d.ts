@@ -193,6 +193,18 @@ export interface ServerHandlers {
 
   'simplefin-accounts': () => Promise<{ accounts: SimpleFinAccount[] }>;
 
+  'simplefin-batch-sync': ({ ids }: { ids: string[] }) => Promise<
+    {
+      accountId: string;
+      res: {
+        errors;
+        newTransactions;
+        matchedTransactions;
+        updatedAccounts;
+      };
+    }[]
+  >;
+
   'gocardless-get-banks': (country: string) => Promise<{
     data: GoCardlessInstitution[];
     error?: { reason: string };
@@ -213,7 +225,7 @@ export interface ServerHandlers {
     | { error: 'failed' }
   >;
 
-  'accounts-bank-sync': (arg: { id?: string }) => Promise<{
+  'accounts-bank-sync': (arg: { ids?: AccountEntity['id'][] }) => Promise<{
     errors;
     newTransactions;
     matchedTransactions;
