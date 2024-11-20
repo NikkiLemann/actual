@@ -417,7 +417,7 @@ function customValidation(transactions) {
         (primaryTrans.transactionId[0] !== checkingTrans.transactionId[0] ||
           primaryTrans.transactionId === checkingTrans.transactionId)
       ) {
-        console.log("Duplicate found, won\u2019t add it to valid transactions");
+        console.log('Duplicate found, won\u2019t add it to valid transactions');
         done = true;
       } else {
         j += 1;
