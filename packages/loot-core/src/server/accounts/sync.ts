@@ -345,6 +345,7 @@ async function normalizeBankSyncTransactions(transactions, acctId) {
     trans.cleared = Boolean(trans.booked);
 
     const notes =
+      trans.remittanceInformationStructured ||
       trans.remittanceInformationUnstructured ||
       (trans.remittanceInformationUnstructuredArray || []).join(', ');
 
@@ -409,8 +410,9 @@ function customValidation(transactions) {
         checkingTrans &&
         primaryTrans.date === checkingTrans.date &&
         primaryTrans.transactionAmount.amount === checkingTrans.transactionAmount.amount &&
-        primaryTrans.remittanceInformationUnstructured === checkingTrans.remittanceInformationUnstructured &&
-        (primaryTrans.transactionId[0] !== checkingTrans.transactionId[0] || primaryTrans.transactionId == checkingTrans.transactionId)
+        (primaryTrans.remittanceInformationStructured === checkingTrans.remittanceInformationStructured ||
+         primaryTrans.remittanceInformationUnstructured === checkingTrans.remittanceInformationUnstructured) &&
+        (primaryTrans.transactionId[0] !== checkingTrans.transactionId[0] || primaryTrans.transactionId === checkingTrans.transactionId)
       ) {
           console.log("Duplicate found, won't add it to valid transactions");
           done = true;
