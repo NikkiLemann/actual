@@ -342,7 +342,7 @@ async function normalizeBankSyncTransactions(transactions, acctId) {
     trans.account = acctId;
     trans.payee = await resolvePayee(trans, trans.payeeName, payeesToCreate);
 
-    trans.cleared = Boolean(trans.booked);
+    trans.cleared = true;
 
     const notes =
       trans.remittanceInformationStructured ||
