@@ -317,17 +317,19 @@ async function normalizeBankSyncTransactions(transactions, acctId) {
 
   const normalized = [];
   for (const trans of transactions) {
-    if (!trans.amount) {
+    if (
+      !trans.amount &&
+      trans.transactionAmount &&
+      trans.transactionAmount.amount
+    ) {
       trans.amount = trans.transactionAmount.amount;
     }
 
-    // Validate the date because we do some stuff with it. The db
-    // layer does better validation, but this will give nicer errors
-    if (trans.date == null) {
+    if (!trans.date) {
       throw new Error('`date` is required when adding a transaction');
     }
 
-    if (trans.payeeName == null) {
+    if (!trans.payeeName) {
       throw new Error('`payeeName` is required when adding a transaction');
     }
 
@@ -336,12 +338,8 @@ async function normalizeBankSyncTransactions(transactions, acctId) {
       trans.imported_payee = trans.imported_payee.trim();
     }
 
-    // It's important to resolve both the account and payee early so
-    // when rules are run, they have the right data. Resolving payees
-    // also simplifies the payee creation process
     trans.account = acctId;
     trans.payee = await resolvePayee(trans, trans.payeeName, payeesToCreate);
-
     trans.cleared = true;
 
     const notes =
@@ -408,6 +406,8 @@ function customValidation(transactions) {
       if (
         checkingTrans &&
         primaryTrans.date === checkingTrans.date &&
+        primaryTrans.transactionAmount &&
+        checkingTrans.transactionAmount &&
         primaryTrans.transactionAmount.amount ===
           checkingTrans.transactionAmount.amount &&
         (primaryTrans.remittanceInformationStructured ===
