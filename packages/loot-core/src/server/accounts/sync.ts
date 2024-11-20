@@ -382,7 +382,6 @@ async function createNewPayees(payeesToCreate, addsAndUpdates) {
 }
 
 function customValidation(transactions) {
-
   const cutoffDate = new Date('2099-01-01');
 
   // Filter out transactions with invalid future dates
@@ -393,7 +392,7 @@ function customValidation(transactions) {
 
   const cleanedTransactions = [];
   let i = 0;
-  console.log("CustomValidation");
+  console.log('CustomValidation');
 
   while (i < validTransactions.length) {
     const primaryTrans = validTransactions[i];
@@ -403,35 +402,39 @@ function customValidation(transactions) {
     let done = false;
     let j = 1;
 
-    while (done === false){
-      const checkingTrans = validTransactions[i+j];
+    while (done === false) {
+      const checkingTrans = validTransactions[i + j];
 
       if (
         checkingTrans &&
         primaryTrans.date === checkingTrans.date &&
-        primaryTrans.transactionAmount.amount === checkingTrans.transactionAmount.amount &&
-        (primaryTrans.remittanceInformationStructured === checkingTrans.remittanceInformationStructured ||
-         primaryTrans.remittanceInformationUnstructured === checkingTrans.remittanceInformationUnstructured) &&
-        (primaryTrans.transactionId[0] !== checkingTrans.transactionId[0] || primaryTrans.transactionId === checkingTrans.transactionId)
+        primaryTrans.transactionAmount.amount ===
+          checkingTrans.transactionAmount.amount &&
+        (primaryTrans.remittanceInformationStructured ===
+          checkingTrans.remittanceInformationStructured ||
+          primaryTrans.remittanceInformationUnstructured ===
+            checkingTrans.remittanceInformationUnstructured) &&
+        (primaryTrans.transactionId[0] !== checkingTrans.transactionId[0] ||
+          primaryTrans.transactionId === checkingTrans.transactionId)
       ) {
-          console.log("Duplicate found, won't add it to valid transactions");
-          done = true;
-      }
-      else{
+        console.log('Duplicate found, won\'t add it to valid transactions');
+        done = true;
+      } else {
         j += 1;
-        if(i+j > validTransactions.length || primaryTrans.date != checkingTrans.date){
+        if (
+          i + j > validTransactions.length ||
+          primaryTrans.date !== checkingTrans.date
+        ) {
           done = true;
-          cleanedTransactions.push(primaryTrans); 
+          cleanedTransactions.push(primaryTrans);
         }
       }
-      
     }
     i += 1;
   }
 
   return cleanedTransactions;
 }
-
 
 export async function reconcileTransactions(
   acctId,
@@ -448,7 +451,7 @@ export async function reconcileTransactions(
   const existingPayeeMap = new Map<string, string>();
 
   // Clean up duplicates from the valid transactions
-  const validTransactions = customValidation(transactions);  // Using the new cleanup function
+  const validTransactions = customValidation(transactions); // Using the new cleanup function
 
   // Continue with reconciliation using validTransactions
   const {
@@ -458,7 +461,7 @@ export async function reconcileTransactions(
     transactionsStep3,
   } = await matchTransactions(
     acctId,
-    validTransactions,  // Use cleaned transactions
+    validTransactions, // Use cleaned transactions
     isBankSyncAccount,
     strictIdChecking,
   );
