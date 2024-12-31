@@ -79,12 +79,6 @@ export function ExperimentalFeatures() {
               <Trans>Goal templates</Trans>
             </FeatureToggle>
             <FeatureToggle
-              flag="dashboards"
-              feedbackLink="https://github.com/actualbudget/actual/issues/3282"
-            >
-              <Trans>Customizable reports page (dashboards)</Trans>
-            </FeatureToggle>
-            <FeatureToggle
               flag="actionTemplating"
               feedbackLink="https://github.com/actualbudget/actual/issues/3606"
             >
@@ -101,6 +95,12 @@ export function ExperimentalFeatures() {
               feedbackLink="https://github.com/actualbudget/actual/issues/3706"
             >
               <Trans>Context menus</Trans>
+            </FeatureToggle>
+            <FeatureToggle
+              flag="openidAuth"
+              feedbackLink="https://github.com/actualbudget/actual/issues/4029"
+            >
+              <Trans>OpenID authentication method</Trans>
             </FeatureToggle>
           </View>
         ) : (
