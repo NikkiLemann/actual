@@ -363,7 +363,7 @@ async function normalizeBankSyncTransactions(transactions, acctId) {
         date: trans.date,
         notes: notes.trim().replace('#', '##'),
         category: trans.category ?? null,
-        imported_id: trans.transactionId,
+        imported_id: trans.transactionId ?? trans.internalTransactionId,
         imported_payee: trans.imported_payee,
         cleared: trans.cleared,
       },
@@ -395,6 +395,12 @@ function customValidation(transactions) {
     return transactionDate <= cutoffDate;
   });
 
+  validTransactions.forEach(tx => {
+    if (!tx.transactionId) {
+      tx.transactionId = tx.internalTransactionId;
+    }
+  });
+  
   const cleanedTransactions = [];
   let i = 0;
   console.log('CustomValidation');
