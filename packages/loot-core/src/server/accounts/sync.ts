@@ -433,11 +433,6 @@ async function normalizeBankSyncTransactions(transactions, acctId) {
       imported_id = `${trans.account}-${trans.internalTransactionId}`;
     }
 
-    let imported_id = trans.transactionId;
-    if (trans.cleared && !trans.transactionId && trans.internalTransactionId) {
-      imported_id = `${trans.account}-${trans.internalTransactionId}`;
-    }
-
     trans.account = acctId;
     trans.payee = await resolvePayee(trans, payeeName, payeesToCreate);
 
