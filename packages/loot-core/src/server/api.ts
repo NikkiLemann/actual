@@ -94,9 +94,10 @@ async function validateExpenseCategory(debug, id) {
     throw APIError(`${debug}: category id is required`);
   }
 
-  const row = await db.first('SELECT is_income FROM categories WHERE id = ?', [
-    id,
-  ]);
+  const row = await db.first<Pick<db.DbCategory, 'is_income'>>(
+    'SELECT is_income FROM categories WHERE id = ?',
+    [id],
+  );
 
   if (!row) {
     throw APIError(`${debug}: category “${id}” does not exist`);
@@ -461,12 +462,14 @@ handlers['api/transactions-export'] = async function ({
   transactions,
   categoryGroups,
   payees,
+  accounts,
 }) {
   checkFileOpen();
   return handlers['transactions-export']({
     transactions,
     categoryGroups,
     payees,
+    accounts,
   });
 };
 
@@ -628,7 +631,10 @@ handlers['api/category-group-create'] = withMutation(async function ({
   group,
 }) {
   checkFileOpen();
-  return handlers['category-group-create']({ name: group.name });
+  return handlers['category-group-create']({
+    name: group.name,
+    hidden: group.hidden,
+  });
 });
 
 handlers['api/category-group-update'] = withMutation(async function ({
