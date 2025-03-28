@@ -165,7 +165,7 @@ async function downloadGoCardlessTransactions(
 
   if (includeBalance) {
     const {
-      transactions: { all },
+      transactions: { booked },
       balances,
       startingBalance,
     } = res;
@@ -173,7 +173,7 @@ async function downloadGoCardlessTransactions(
     console.log('Response:', res);
 
     return {
-      transactions: all,
+      transactions: booked,
       accountBalance: balances,
       startingBalance,
     };
@@ -181,7 +181,7 @@ async function downloadGoCardlessTransactions(
     console.log('Response:', res);
 
     return {
-      transactions: res.transactions.all,
+      transactions: res.transactions.booked,
     };
   }
 }
@@ -233,7 +233,7 @@ async function downloadSimpleFinTransactions(
       const error = res?.errors?.[accountId]?.[0];
 
       retVal[accountId] = {
-        transactions: data?.transactions?.all,
+        transactions: data?.transactions?.booked,
         accountBalance: data?.balances,
         startingBalance: data?.startingBalance,
       };
@@ -246,7 +246,7 @@ async function downloadSimpleFinTransactions(
   } else {
     const singleRes = res as BankSyncResponse;
     retVal = {
-      transactions: singleRes.transactions.all,
+      transactions: singleRes.transactions.booked,
       accountBalance: singleRes.balances,
       startingBalance: singleRes.startingBalance,
     };
@@ -400,7 +400,11 @@ async function normalizeBankSyncTransactions(transactions, acctId) {
 
     if (!importPending && !trans.cleared) continue;
 
-    if (!trans.amount) {
+    if (
+      !trans.amount &&
+      trans.transactionAmount &&
+      trans.transactionAmount.amount
+    ) {
       trans.amount = trans.transactionAmount.amount;
     }
 
@@ -408,7 +412,7 @@ async function normalizeBankSyncTransactions(transactions, acctId) {
 
     const date = trans[mapping.get('date')] ?? trans.date;
     const payeeName = trans[mapping.get('payee')];
-    const notes = trans[mapping.get('notes')];
+    //const notes = trans[mapping.get('notes')];
 
     // Validate the date because we do some stuff with it. The db
     // layer does better validation, but this will give nicer errors
@@ -436,6 +440,11 @@ async function normalizeBankSyncTransactions(transactions, acctId) {
     trans.account = acctId;
     trans.payee = await resolvePayee(trans, payeeName, payeesToCreate);
 
+    const notes =
+      trans.remittanceInformationStructured ||
+      trans.remittanceInformationUnstructured ||
+      (trans.remittanceInformationUnstructuredArray || []).join(', ');
+
     normalized.push({
       payee_name: payeeName,
       trans: {
@@ -445,7 +454,7 @@ async function normalizeBankSyncTransactions(transactions, acctId) {
         date,
         notes: importNotes && notes ? notes.trim().replace(/#/g, '##') : null,
         category: trans.category ?? null,
-        imported_id,
+        imported_id: trans.transactionId ?? trans.internalTransactionId,
         imported_payee: trans.imported_payee,
         cleared: trans.cleared,
         raw_synced_data: JSON.stringify(trans),
@@ -467,6 +476,69 @@ async function createNewPayees(payeesToCreate, addsAndUpdates) {
       }
     }
   });
+}
+
+function customValidation(transactions) {
+  const cutoffDate = new Date('2099-01-01');
+
+  // Filter out transactions with invalid future dates
+  const validTransactions = transactions.filter(transaction => {
+    const transactionDate = new Date(transaction.date);
+    return transactionDate <= cutoffDate;
+  });
+
+  validTransactions.forEach(tx => {
+    if (!tx.transactionId) {
+      tx.transactionId = tx.internalTransactionId;
+    }
+  });
+
+  const cleanedTransactions = [];
+  let i = 0;
+  console.log('CustomValidation');
+
+  while (i < validTransactions.length) {
+    const primaryTrans = validTransactions[i];
+
+    console.log(primaryTrans);
+
+    let done = false;
+    let j = 1;
+
+    while (done === false) {
+      const checkingTrans = validTransactions[i + j];
+
+      if (
+        checkingTrans &&
+        primaryTrans.date === checkingTrans.date &&
+        primaryTrans.transactionAmount &&
+        checkingTrans.transactionAmount &&
+        primaryTrans.transactionAmount.amount ===
+          checkingTrans.transactionAmount.amount &&
+        (primaryTrans.remittanceInformationStructured ===
+          checkingTrans.remittanceInformationStructured ||
+          primaryTrans.remittanceInformationUnstructured ===
+            checkingTrans.remittanceInformationUnstructured) &&
+        (primaryTrans.transactionId[0] !== checkingTrans.transactionId[0] ||
+          primaryTrans.transactionId === checkingTrans.transactionId)
+      ) {
+        console.log('Duplicate found, won\u2019t add it to valid transactions');
+        done = true;
+      } else {
+        j += 1;
+        if (
+          i + j > validTransactions.length ||
+          primaryTrans.date !== checkingTrans.date
+        ) {
+          done = true;
+          cleanedTransactions.push(primaryTrans);
+        }
+      }
+    }
+    i += 1;
+  }
+
+  return cleanedTransactions;
 }
 
 export type ReconcileTransactionsResult = {
@@ -494,6 +566,10 @@ export async function reconcileTransactions(
   const updatedPreview = [];
   const existingPayeeMap = new Map<string, string>();
 
+  // Clean up duplicates from the valid transactions
+  const validTransactions = customValidation(transactions); // Using the new cleanup function
+
+  // Continue with reconciliation using validTransactions
   const {
     payeesToCreate,
     transactionsStep1,
@@ -501,7 +577,7 @@ export async function reconcileTransactions(
     transactionsStep3,
   } = await matchTransactions(
     acctId,
-    transactions,
+    validTransactions,
     isBankSyncAccount,
     strictIdChecking,
   );
