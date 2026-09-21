@@ -1,0 +1,110 @@
+diff --git a/packages/loot-core/src/server/accounts/sync.ts b/packages/loot-core/src/server/accounts/sync.ts
+index df1ef109c..ada33fe68 100644
+--- a/packages/loot-core/src/server/accounts/sync.ts
++++ b/packages/loot-core/src/server/accounts/sync.ts
+@@ -3,7 +3,6 @@ import * as dateFns from 'date-fns';
+ import { v4 as uuidv4 } from 'uuid';
+ 
+ import * as asyncStorage from '../../platform/server/asyncStorage';
+-import { logger } from '../../platform/server/log';
+ import * as monthUtils from '../../shared/months';
+ import { q } from '../../shared/query';
+ import {
+@@ -67,9 +66,9 @@ function getAccountBalance(account) {
+   }
+ }
+ 
+-async function updateAccountBalance(id: AccountEntity['id'], balance: number) {
++async function updateAccountBalance(id, balance) {
+   await db.runQuery('UPDATE accounts SET balance_current = ? WHERE id = ?', [
+-    balance,
++    amountToInteger(balance),
+     id,
+   ]);
+ }
+@@ -139,7 +138,7 @@ async function downloadGoCardlessTransactions(
+   const userToken = await asyncStorage.getItem('user-token');
+   if (!userToken) return;
+ 
+-  logger.log('Pulling transactions from GoCardless');
++  console.log('Pulling transactions from GoCardless');
+ 
+   const res = await post(
+     getServer().GOCARDLESS_SERVER + '/transactions',
+@@ -196,7 +195,7 @@ async function downloadSimpleFinTransactions(
+ 
+   const batchSync = Array.isArray(acctId);
+ 
+-  logger.log('Pulling transactions from SimpleFin');
++  console.log('Pulling transactions from SimpleFin');
+ 
+   let res;
+   try {
+@@ -213,7 +212,7 @@ async function downloadSimpleFinTransactions(
+       Array.isArray(acctId) ? 300000 : 60000,
+     );
+   } catch (error) {
+-    logger.error('Suspected timeout during bank sync:', error);
++    console.error('Suspected timeout during bank sync:', error);
+     throw BankSyncError('TIMED_OUT', 'TIMED_OUT');
+   }
+ 
+@@ -264,7 +263,7 @@ async function downloadPluggyAiTransactions(
+   const userToken = await asyncStorage.getItem('user-token');
+   if (!userToken) return;
+ 
+-  logger.log('Pulling transactions from Pluggy.ai');
++  console.log('Pulling transactions from Pluggy.ai');
+ 
+   const res = await post(
+     getServer().PLUGGYAI_SERVER + '/transactions',
+@@ -292,7 +291,7 @@ async function downloadPluggyAiTransactions(
+     startingBalance: singleRes.startingBalance,
+   };
+ 
+-  logger.log('Response:', retVal);
++  console.log('Response:', retVal);
+   return retVal;
+ }
+ 
+@@ -549,7 +548,6 @@ export type ReconcileTransactionsResult = {
+     transaction: TransactionEntity;
+     existing?: TransactionEntity;
+     ignored?: boolean;
+-    tombstone?: boolean;
+   }>;
+ };
+ 
+@@ -643,14 +641,6 @@ export async function reconcileTransactions(
+           updated.push({ id: child.id, cleared: updates.cleared });
+         }
+       }
+-    } else if (trans.tombstone) {
+-      if (isPreview) {
+-        updatedPreview.push({
+-          transaction: trans,
+-          existing: false,
+-          tombstone: true,
+-        });
+-      }
+     } else {
+       // Insert a new transaction
+       const { forceAddTransaction, ...newTrans } = trans;
+@@ -680,7 +670,7 @@ export async function reconcileTransactions(
+     await batchUpdateTransactions({ added, updated });
+   }
+ 
+-  logger.log('Debug data for the operations:', {
++  console.log('Debug data for the operations:', {
+     transactionsStep1,
+     transactionsStep2,
+     transactionsStep3,
+@@ -702,7 +692,7 @@ export async function matchTransactions(
+   isBankSyncAccount = false,
+   strictIdChecking = true,
+ ) {
+-  logger.log('Performing transaction reconciliation matching');
++  console.log('Performing transaction reconciliation matching');
+ 
+   const reimportDeleted = await aqlQuery(
+     q('preferences')
